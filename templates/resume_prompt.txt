@@ -1,0 +1,1 @@
+Create a tailored resume from the master resume focusing on the job posting. Highlight matching skills, achievements, and keywords from the job. Keep the resume concise and formatted as plain text.
