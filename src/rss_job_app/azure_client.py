@@ -1,10 +1,14 @@
 import os
-import openai
+import importlib
 from typing import List
 import re
 
 
 def _init_openai():
+    # import openai lazily so running in --dry-run doesn't require the package
+    openai = importlib.import_module("openai")
+    globals()["openai"] = openai
+
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
     api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
     api_type = os.getenv("AZURE_OPENAI_API_TYPE", "azure")
