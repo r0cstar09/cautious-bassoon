@@ -1,0 +1,37 @@
+Traceback (most recent call last):
+  File "/workspaces/cautious-bassoon/src/rss_job_app/azure_client.py", line 75, in score_relevance_via_llm
+    resp = client.chat.completions.create(model=deployment, messages=messages, max_tokens=10)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py", line 1192, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1259, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1047, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: DZx3inHS************************************************************************KJvI. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspaces/cautious-bassoon/src/rss_job_app/main.py", line 166, in <module>
+    main()
+  File "/workspaces/cautious-bassoon/src/rss_job_app/main.py", line 126, in main
+    score = score_job_against_resume(job.get("content", ""), master)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/src/rss_job_app/scorer.py", line 9, in score_job_against_resume
+    return score_relevance_via_llm(job_text, master_resume_text)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/cautious-bassoon/src/rss_job_app/azure_client.py", line 80, in score_relevance_via_llm
+    raise RuntimeError(
+RuntimeError: Authentication to OpenAI failed.
+If you are using Azure OpenAI, ensure `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` are set to your Azure resource key and endpoint (not an OpenAI platform key).
+If you are using OpenAI platform keys, set OPENAI_API_KEY and do not set AZURE_OPENAI_ENDPOINT.
+Details: Error code: 401 - {'error': {'message': 'Incorrect API key provided: DZx3inHS************************************************************************KJvI. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+Using master resume: sample_master_resume.md
