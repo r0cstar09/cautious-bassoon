@@ -2,3 +2,5 @@ feedparser>=6.0.8
 openai>=1.4.0
 python-dotenv>=1.0.0
 pypandoc>=1.8.4
+# Note: pypandoc requires the pandoc binary to be installed separately
+# Install via: brew install pandoc (macOS) or apt-get install pandoc (Linux)

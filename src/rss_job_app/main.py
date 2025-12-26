@@ -4,6 +4,7 @@ import json
 import smtplib
 import ssl
 import subprocess
+import re
 from pathlib import Path
 from typing import List
 import shutil
@@ -25,11 +26,38 @@ def load_master_resume(path: str) -> str:
         return f.read()
 
 
-def save_application(outdir: Path, job_id: str, app: dict):
+def sanitize_filename(title: str, max_length: int = 100) -> str:
+    """Convert job title to a safe filename by removing/replacing invalid characters."""
+    if not title:
+        return "untitled_job"
+    
+    # Remove or replace invalid filename characters
+    # Replace common problematic characters with underscores
+    sanitized = re.sub(r'[<>:"/\\|?*]', '_', title)
+    # Replace multiple spaces/underscores with single underscore
+    sanitized = re.sub(r'[\s_]+', '_', sanitized)
+    # Remove leading/trailing underscores and dots
+    sanitized = sanitized.strip('_.')
+    # Limit length
+    sanitized = sanitized[:max_length]
+    
+    # If empty after sanitization, use fallback
+    if not sanitized:
+        sanitized = "untitled_job"
+    
+    return sanitized
+
+
+def save_application(outdir: Path, job_title: str, app: dict):
+    """Save resume and cover letter files in a folder named after the job title."""
     outdir.mkdir(parents=True, exist_ok=True)
-    base = outdir / (job_id.replace("/", "_")[:120])
-    (base.with_suffix(".resume.txt")).write_text(app["resume"], encoding="utf-8")
-    (base.with_suffix(".cover.txt")).write_text(app["cover_letter"], encoding="utf-8")
+    safe_title = sanitize_filename(job_title)
+    # Create a folder for this job
+    job_folder = outdir / safe_title
+    job_folder.mkdir(parents=True, exist_ok=True)
+    # Save files inside the job folder
+    (job_folder / "resume.txt").write_text(app["resume"], encoding="utf-8")
+    (job_folder / "cover_letter.txt").write_text(app["cover_letter"], encoding="utf-8")
 
 
 def _convert_markdown_to_docx(md_path: Path) -> Path:
@@ -66,15 +94,16 @@ def _save_history(history_path: Path, ids: List[str]):
 
 
 def _send_email(subject: str, body: str):
+    # Email configuration from environment variables
     email_from = os.getenv("EMAIL_FROM")
     email_to = os.getenv("EMAIL_TO")
     email_password = os.getenv("EMAIL_PASSWORD")
+    smtp_server = os.getenv("EMAIL_SMTP_SERVER", "smtp.mail.me.com")
+    smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+    
     if not (email_from and email_to and email_password):
         print("Email credentials not fully set; skipping email")
         return
-
-    smtp_server = os.getenv("EMAIL_SMTP_SERVER", "smtp.mail.me.com")
-    smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
 
     message = f"Subject: {subject}\n\n{body}"
 
@@ -97,6 +126,7 @@ def main():
     p.add_argument("--out", default="applications", help="Output directory")
     p.add_argument("--dry-run", action="store_true", help="Fetch and show jobs without calling the OpenAI API")
     p.add_argument("--to-docx", action="store_true", help="Convert generated markdown resumes and cover letters to DOCX (requires pandoc or pypandoc)")
+    p.add_argument("--limit", type=int, default=None, help="Limit the number of jobs to process (useful for testing)")
     args = p.parse_args()
 
     master = load_master_resume(args.master)
@@ -121,18 +151,35 @@ def main():
     new_ids: List[str] = []
     generated_files: List[Path] = []
 
+    job_count = 0
     for entry in fetch_feed(args.feed):
+        if args.limit and job_count >= args.limit:
+            print(f"Reached limit of {args.limit} jobs. Stopping.")
+            break
+        
         job = normalize_entry(entry)
         score = score_job_against_resume(job.get("content", ""), master)
         print(f"Job {job.get('title')} score={score:.3f}")
+        job_count += 1
         if score >= args.threshold:
+            job_title = job.get("title") or "Untitled Job"
+            job_id = job.get("id") or job.get("link") or job_title
+            safe_title = sanitize_filename(job_title)
+            job_folder = outdir / safe_title
+            
+            # Check if folder already exists (duplicate job)
+            if job_folder.exists() and job_folder.is_dir():
+                print(f"  -> Skipping {job_title} (folder already exists)")
+                # Still add to history to track we've seen it
+                if str(job_id) not in prior_ids:
+                    new_ids.append(str(job_id))
+                continue
+            
             print(f"  -> Generating application for {job.get('title')}")
             app = generate_application(job, master)
-            job_id = job.get("id") or job.get("link") or job.get("title")
-            save_application(outdir, str(job_id), app)
-            base = outdir / (str(job_id).replace("/", "_")[:120])
-            resume_path = base.with_suffix(".resume.txt")
-            cover_path = base.with_suffix(".cover.txt")
+            save_application(outdir, job_title, app)
+            resume_path = job_folder / "resume.txt"
+            cover_path = job_folder / "cover_letter.txt"
             generated_files.extend([resume_path, cover_path])
             if str(job_id) not in prior_ids:
                 new_ids.append(str(job_id))
