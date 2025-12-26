@@ -122,7 +122,7 @@ def main():
     p = argparse.ArgumentParser(description="Fetch RSS job posts and generate tailored applications.")
     p.add_argument("--feed", required=True, help="RSS/Atom feed URL to poll")
     p.add_argument("--master", default="sample_master_resume.md", help="Path to master resume (markdown/plain text) (default: sample_master_resume.md)")
-    p.add_argument("--threshold", type=float, default=0.7, help="Similarity threshold (0-1) to generate apps")
+    p.add_argument("--threshold", type=float, default=0, help="Similarity threshold (0-1) to generate apps")
     p.add_argument("--out", default="applications", help="Output directory")
     p.add_argument("--dry-run", action="store_true", help="Fetch and show jobs without calling the OpenAI API")
     p.add_argument("--to-docx", action="store_true", help="Convert generated markdown resumes and cover letters to DOCX (requires pandoc or pypandoc)")
